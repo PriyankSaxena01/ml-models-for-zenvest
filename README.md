@@ -1,624 +1,147 @@
-# Zenvest Integration README
+🚀 Zenvest
+Parametric Income Protection for Delivery Partners
 
-## Goal
+Zenvest is a web-based micro-insurance platform that delivers instant, trigger-based payouts for India’s gig workforce.
 
-This README explains how to connect the **frontend**, **backend**, and **ML services** for Zenvest so the full flow works during demo and submission.
+Instead of manual claims, Zenvest uses real-world environmental triggers (weather, AQI, downtime) to automatically compensate delivery partners—ensuring they are protected from factors beyond their control.
 
----
+✨ Key Highlights
+⚡ Instant payouts (no claim process)
+📡 Real-time environmental triggers
+🤖 AI-driven risk profiling & fraud detection
+🌐 Works on any device (no install required)
+🧩 Microservices-based scalable architecture
+🧭 How the System Works
+User signs up and selects a plan
+AI recommends optimal coverage
+Payment activates the policy
+External trigger occurs (rain, AQI, etc.)
+💸 Automatic payout within seconds
+💻 How to Run the Project
+⚠️ Important
+The system follows a microservices architecture
+Each service runs independently
+Tested on:
+Same device OR
+Same WiFi network
 
-## 1. Recommended project structure
+👉 You must run all services together for the system to work correctly.
 
-```text
-zenvest/
-  frontend/
-    src/
-      pages/
-      components/
-      services/
-        api.js
-      utils/
-    package.json
+📥 Step 1: Clone Repository
+git clone <your-repo-url>
+cd zenvest
+📦 Step 2: Install Dependencies
 
-  backend/
-    src/
-      routes/
-        riskRoutes.js
-        fraudRoutes.js
-      controllers/
-        riskController.js
-        fraudController.js
-      services/
-        mlService.js
-      app.js
-      server.js
-    package.json
-    .env
+Run inside each service folder:
 
-  ml-service/
-    app/
-      main.py
-      train.py
-      predict.py
-      schema.py
-      fraud_train.py
-      fraud_predict.py
-      fraud_schema.py
-    models/
-      risk_model.json
-      label_encoders.pkl
-      fraud_model.pkl
-      fraud_columns.pkl
-    data/
-      synthetic_risk_data.csv
-      synthetic_fraud_data.csv
-    requirements.txt
-```
+npm install
+⚙️ Step 3: Start Backend Services
 
----
+Run each backend service:
 
-## 2. What each part does
+npm run dev
 
-### Frontend
+or
 
-Collects user data from onboarding or claim flow and sends it to backend.
+npm start
 
-### Backend
+Ensure each service runs on its designated port (e.g., 8080, 5000)
 
-Acts as the main controller. It receives frontend requests, calls the ML service, and returns final results.
-
-### ML Service
-
-Runs the trained models and returns predictions through API endpoints.
-
----
-
-## 3. Integration flow
-
-### Risk scoring flow
-
-```text
-Frontend form
-   ↓
-Backend route: /api/risk/predict
-   ↓
-Backend service calls ML API: POST /predict
-   ↓
-ML returns risk_label + recommended_plan
-   ↓
-Backend sends final response to frontend
-```
-
-### Fraud detection flow
-
-```text
-Frontend or payout workflow
-   ↓
-Backend route: /api/fraud/check
-   ↓
-Backend service calls ML API: POST /predict-fraud
-   ↓
-ML returns anomaly result
-   ↓
-Backend decides:
-     normal → auto approve
-     suspicious → manual review
-```
-
----
-
-## 4. ML service setup
-
-Go inside `ml-service`.
-
-### Install dependencies
-
-```bash
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-### Train models
-
-```bash
-python -m app.train
-python -m app.fraud_train
-```
-
-### Run ML API
-
-```bash
-uvicorn app.main:app --reload
-```
-
-ML service will run at:
-
-```text
-http://127.0.0.1:8000
-```
-
-Docs:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
----
-
-## 5. ML endpoints available
-
-### Risk scoring
-
-**POST** `/predict`
-
-Input:
-
-```json
-{
-  "city": "Mumbai",
-  "platform": "Swiggy",
-  "zone_risk": "High",
-  "weekly_hours": 58,
-  "past_claims": 3,
-  "weather_risk": 8,
-  "aqi_risk": 7,
-  "tenure_months": 5,
-  "trust_score": 0.74
-}
-```
-
-Output:
-
-```json
-{
-  "success": true,
-  "prediction": {
-    "risk_label": "High",
-    "risk_score_probability": 0.9123,
-    "recommended_plan": "Pro Shield"
-  }
-}
-```
-
-### Fraud detection
-
-**POST** `/predict-fraud`
-
-Input:
-
-```json
-{
-  "claim_count_7d": 9,
-  "avg_claim_amount": 2800,
-  "location_jump_km": 62.4,
-  "cluster_claim_count": 17,
-  "device_motion_score": 0.11,
-  "vpn_flag": 1,
-  "claim_trigger_frequency": 9,
-  "trust_score": 0.28
-}
-```
-
-Output:
-
-```json
-{
-  "success": true,
-  "prediction": {
-    "is_fraud_suspected": true,
-    "anomaly_label": "Anomalous",
-    "anomaly_score": -0.1032,
-    "risk_level": "High"
-  }
-}
-```
-
----
-
-## 6. Backend setup
-
-Inside backend, install:
-
-```bash
-npm install express axios cors dotenv
-```
-
----
-
-## 7. Backend environment file
-
-Create `.env` inside backend:
-
-```env
-PORT=5000
-ML_SERVICE_URL=http://127.0.0.1:8000
-```
-
----
-
-## 8. Backend service file
-
-Create: `backend/src/services/mlService.js`
-
-```js
-const axios = require("axios");
-
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
-
-const getRiskPrediction = async (payload) => {
-  const response = await axios.post(`${ML_SERVICE_URL}/predict`, payload);
-  return response.data;
-};
-
-const getFraudPrediction = async (payload) => {
-  const response = await axios.post(`${ML_SERVICE_URL}/predict-fraud`, payload);
-  return response.data;
-};
-
-module.exports = {
-  getRiskPrediction,
-  getFraudPrediction,
-};
-```
-
----
-
-## 9. Backend controllers
-
-### `backend/src/controllers/riskController.js`
-
-```js
-const { getRiskPrediction } = require("../services/mlService");
-
-const predictRisk = async (req, res) => {
-  try {
-    const result = await getRiskPrediction(req.body);
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error("Risk prediction error:", error.message);
-    return res.status(500).json({
-      success: false,
-      message: "Risk prediction failed",
-    });
-  }
-};
-
-module.exports = { predictRisk };
-```
-
-### `backend/src/controllers/fraudController.js`
-
-```js
-const { getFraudPrediction } = require("../services/mlService");
-
-const checkFraud = async (req, res) => {
-  try {
-    const result = await getFraudPrediction(req.body);
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error("Fraud prediction error:", error.message);
-    return res.status(500).json({
-      success: false,
-      message: "Fraud check failed",
-    });
-  }
-};
-
-module.exports = { checkFraud };
-```
-
----
-
-## 10. Backend routes
-
-### `backend/src/routes/riskRoutes.js`
-
-```js
-const express = require("express");
-const router = express.Router();
-const { predictRisk } = require("../controllers/riskController");
-
-router.post("/predict", predictRisk);
-
-module.exports = router;
-```
-
-### `backend/src/routes/fraudRoutes.js`
-
-```js
-const express = require("express");
-const router = express.Router();
-const { checkFraud } = require("../controllers/fraudController");
-
-router.post("/check", checkFraud);
-
-module.exports = router;
-```
-
----
-
-## 11. Backend app entry
-
-### `backend/src/app.js`
-
-```js
-const express = require("express");
-const cors = require("cors");
-const riskRoutes = require("./routes/riskRoutes");
-const fraudRoutes = require("./routes/fraudRoutes");
-
-const app = express();
-
-app.use(cors());
-app.use(express.json());
-
-app.use("/api/risk", riskRoutes);
-app.use("/api/fraud", fraudRoutes);
-
-module.exports = app;
-```
-
-### `backend/src/server.js`
-
-```js
-require("dotenv").config();
-const app = require("./app");
-
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
-});
-```
-
-Run backend:
-
-```bash
-node src/server.js
-```
-
----
-
-## 12. Frontend integration
-
-Inside frontend, use axios.
-
-```bash
-npm install axios
-```
-
-Create: `frontend/src/services/api.js`
-
-```js
-import axios from "axios";
-
-const API = axios.create({
-  baseURL: "http://localhost:5000/api",
-});
-
-export const predictRisk = async (payload) => {
-  const res = await API.post("/risk/predict", payload);
-  return res.data;
-};
-
-export const checkFraud = async (payload) => {
-  const res = await API.post("/fraud/check", payload);
-  return res.data;
-};
-```
-
----
-
-## 13. Frontend usage example
-
-### Risk scoring example
-
-```js
-import { predictRisk } from "../services/api";
-
-const handleRiskCheck = async () => {
-  const payload = {
-    city: "Mumbai",
-    platform: "Swiggy",
-    zone_risk: "High",
-    weekly_hours: 58,
-    past_claims: 3,
-    weather_risk: 8,
-    aqi_risk: 7,
-    tenure_months: 5,
-    trust_score: 0.74,
-  };
-
-  try {
-    const data = await predictRisk(payload);
-    console.log("Risk result:", data);
-  } catch (error) {
-    console.error(error);
-  }
-};
-```
-
-### Fraud check example
-
-```js
-import { checkFraud } from "../services/api";
-
-const handleFraudCheck = async () => {
-  const payload = {
-    claim_count_7d: 9,
-    avg_claim_amount: 2800,
-    location_jump_km: 62.4,
-    cluster_claim_count: 17,
-    device_motion_score: 0.11,
-    vpn_flag: 1,
-    claim_trigger_frequency: 9,
-    trust_score: 0.28,
-  };
-
-  try {
-    const data = await checkFraud(payload);
-    console.log("Fraud result:", data);
-  } catch (error) {
-    console.error(error);
-  }
-};
-```
-
----
-
-## 14. Suggested frontend pages/components
-
-### Onboarding page
-
-Use risk scoring here:
-
-* collect user city
-* platform
-* weekly hours
-* zone risk
-* past claims
-* weather risk
-* AQI risk
-* tenure months
-* trust score
-
-Then show:
-
-* risk label
-* recommended plan
-
-### Claims or admin dashboard
-
-Use fraud detection here:
-
-* claim count in last 7 days
-* average claim amount
-* location jump
-* cluster claim count
-* device motion score
-* VPN flag
-* trust score
-
-Then show:
-
-* normal / anomalous
-* fraud suspected or not
-* risk level
-
----
-
-## 15. Full local startup order
-
-Run in this order:
-
-### Terminal 1 — ML service
-
-```bash
-cd ml-service
-venv\Scripts\activate
-uvicorn app.main:app --reload
-```
-
-### Terminal 2 — Backend
-
-```bash
-cd backend
-node src/server.js
-```
-
-### Terminal 3 — Frontend
-
-```bash
+🌐 Step 4: Start Frontend
 cd frontend
 npm run dev
-```
 
----
+Access the app at:
 
-## 16. Ports summary
+http://localhost:5173
+🔗 Step 5: API Configuration
+Same device → use localhost
+Different devices → use local IP address
 
-* Frontend: `http://localhost:5173`
-* Backend: `http://localhost:5000`
-* ML Service: `http://127.0.0.1:8000`
+Example:
 
----
+http://192.168.x.x:8080/api/v1/
 
-## 17. Recommended submission demo flow
+📡 Step 6: Network Requirement
+All services must be on the same WiFi/network
+For multi-device testing:
+Backend runs on one machine
+Frontend accessed via IP on another
 
-### Demo 1: onboarding
+🔐 Step 7: Environment Variables
 
-1. User fills onboarding form
-2. Frontend sends data to backend
-3. Backend calls ML risk model
-4. Model returns risk label and recommended plan
-5. Frontend shows `Starter / Smart / Pro Shield`
+Create .env files where required:
 
-### Demo 2: fraud detection
+PORT=8080
+MONGO_URI=your_mongodb_connection
+JWT_SECRET=your_secret
+RAZORPAY_KEY=your_key
+🚧 Current Status
+🧪 Development & testing phase
+🔌 Services run locally and independently
+🚀 Cloud deployment planned in future releases
+🏗️ Architecture Overview
+Microservices-based system
+Independent services communicating via APIs
+Designed for modular scaling and easy deployment
+👤 User Scenarios
+🛵 Delivery Partner (Veer)
+Earns daily income via platforms
+Faces income drops during bad conditions
 
-1. Simulate claim
-2. Backend sends claim behavior data to fraud model
-3. Fraud model returns suspicious/normal
-4. Dashboard shows:
+Flow:
 
-   * normal → auto approve
-   * suspicious → manual review
+Signup → Choose Plan → Pay → Trigger Event → 💸 Instant Payout
+📊 Operations Manager
+Monitors risk zones
+Tracks losses and fraud
+Uses predictive insights for decisions
+💰 Pricing Model
+Plan	Price	Description
+🟢 Starter Shield	₹99/week	Basic coverage
+🔵 Smart Shield	₹149/week	Balanced plan
+🟣 Pro Shield	₹249/week	Maximum coverage
+⚡ Trigger-Based Payouts
 
----
+Payouts are automatically triggered when:
 
-## 18. Common issues
+🌧 Rainfall > 25mm
+🌫 AQI > 400
+📉 Platform downtime > 2 hours
+🔥 Temperature > 45°C
+🤖 AI & Intelligence Layer
+Identity Verification (OCR + Liveness Detection)
+Risk Profiling (XGBoost)
+Disruption Prediction (LSTM)
+Fraud Detection (Isolation Forest)
+Plan Recommendation Engine
+Chatbot Support (LLM)
+Churn Prediction
+Sentiment Analysis
+🧱 Tech Stack
+Layer	Technology
+Frontend	React + Tailwind CSS
+Backend	Node.js (Express/Fastify)
+Database	MongoDB
+Cache	Redis
+Messaging	AWS SQS
+Payments	Razorpay
+Infrastructure	AWS
+🛡️ Security & Compliance
+IRDAI Sandbox aligned
+DPDP Act 2023 compliant
+AES-256 encryption
+TLS 1.3 secure APIs
+🧠 Fraud Detection (Sentinel)
+Detects GPS spoofing & fake activity
+Uses motion + network + behavioral signals
+Identifies coordinated fraud clusters
+Multi-layer verification system
+🚀 Future Roadmap
+☁️ Full AWS deployment
+📈 Multi-city scaling
+📱 Optional mobile app
+⚡ Production-grade rollout
+📌 Final Note
 
-### Problem: frontend cannot call backend
-
-Check:
-
-* backend is running on port 5000
-* CORS is enabled
-* frontend baseURL is correct
-
-### Problem: backend cannot call ML service
-
-Check:
-
-* ML service is running on port 8000
-* `ML_SERVICE_URL` in `.env` is correct
-* `/predict` and `/predict-fraud` work in Swagger
-
-### Problem: model files missing
-
-Run:
-
-```bash
-python -m app.train
-python -m app.fraud_train
-```
-
----
-
-## 19. Best practice
-
-Do **not** call the ML service directly from frontend in production.
-
-Preferred:
-
-```text
-Frontend → Backend → ML Service
-```
-
-Reason:
-
-* cleaner architecture
-* better security
-* easier validation and logging
-* easier future scaling
-
----
-
-## 20. Final summary
-
-* Frontend handles user interaction
-* Backend handles logic and API orchestration
-* ML service handles predictions
-* Risk model is used during onboarding
-* Fraud model is used during claim validation
-
-This setup is lightweight, demo-friendly, and easy to extend later with real datasets and production APIs.
+Zenvest is a scalable, AI-powered parametric insurance platform currently running in a local microservices setup, with full deployment planned in upcoming phases.

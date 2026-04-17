@@ -1,7 +1,14 @@
-zenvest/ml-service/venv/
-**/__pycache__/
+node_modules/
+dist/
+.env
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
 .DS_Store
 Thumbs.db
+
+zenvest/ml-service/venv/
+zenvest/frontend/node_modules/
+zenvest/frontend/dist/
+*.log
